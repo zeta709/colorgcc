@@ -370,9 +370,9 @@ while(<GCCOUT>)
    elsif (m/^(.*?):(.+):$/) # filename:message:
    {
       # No line number, treat as an "introductory" line of text.
-      print($colors{"introColor"}, "$1:", color("reset"));
+      print($colors{"introColor"}, "$1", color("reset"), ":");
       srcscan($2, $colors{"introColor"});
-      print($colors{"introColor"}, ":", color("reset"));
+      print($colors{"introColor"}, color("reset"), ":");
       print("\n");
    }
    elsif (m/^(.*)$/) # Anything else.
