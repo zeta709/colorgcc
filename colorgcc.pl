@@ -102,7 +102,8 @@ sub initDefaults
    $nocolor{"dumb"} = "true";
 
    $colors{"srcColor"} = color("cyan");
-   $colors{"introColor"} = color("blue");
+   $colors{"introFileNameColor"} = color("blue");
+   $colors{"introMessageColor"} = color("blue");
 
    $colors{"warningFileNameColor"} = color("yellow");
    $colors{"warningNumberColor"}   = color("yellow");
@@ -113,6 +114,11 @@ sub initDefaults
    $colors{"errorNumberColor"}   = color("bold red");
    $colors{"errorColumnNumberColor"}   = color("bold red");
    $colors{"errorMessageColor"}  = color("bold red");
+
+   $colors{"noteFileNameColor"} = color("green");
+   $colors{"noteNumberColor"}   = color("green");
+   $colors{"noteColumnNumberColor"}   = color("green");
+   $colors{"noteMessageColor"}  = color("green");
 }
 
 sub loadPreferences
@@ -297,7 +303,7 @@ while(<GCCOUT>)
       my ($c1, $c2, $c3, $c4);
 
       if (!$field4) {
-         $c1 = $colors{"introColor"};
+         $c1 = $colors{"introFileNameColor"};
 	 $c2 = $colors{"warningNumberColor"};
 	 $c3 = $colors{"warningColumnNumberColor"};
 	 $c4 = color("reset");
@@ -310,13 +316,21 @@ while(<GCCOUT>)
 	 $c3 = $colors{"warningColumnNumberColor"};
 	 $c4 = $colors{"warningMessageColor"};
       }
-      else 
+      elsif ($field4 = ~m/error:.*/)
       {
 	 # Error
          $c1 = $colors{"errorFileNameColor"};
 	 $c2 = $colors{"errorNumberColor"};
 	 $c3 = $colors{"errorColumnNumberColor"};
 	 $c4 = $colors{"errorMessageColor"};
+      }
+      else 
+      {
+	 # Note
+         $c1 = $colors{"noteFileNameColor"};
+	 $c2 = $colors{"noteNumberColor"};
+	 $c3 = $colors{"noteColumnNumberColor"};
+	 $c4 = $colors{"noteMessageColor"};
       }
       print($c1, "$field1", color("reset"), ":");
       print($c2, "$field2", color("reset"), ":");
@@ -337,7 +351,7 @@ while(<GCCOUT>)
       my ($c1, $c2, $c3, $c4);
 
       if (!$field4) {
-         $c1 = $colors{"introColor"};
+         $c1 = $colors{"introFileNameColor"};
 	 $c2 = $colors{"warningNumberColor"};
 	 $c4 = color("reset");
       }
@@ -348,12 +362,19 @@ while(<GCCOUT>)
 	 $c2 = $colors{"warningNumberColor"};
 	 $c4 = $colors{"warningMessageColor"};
       }
-      else 
+      elsif ($field4 = ~m/error:.*/)
       {
 	 # Error
          $c1 = $colors{"errorFileNameColor"};
 	 $c2 = $colors{"errorNumberColor"};
 	 $c4 = $colors{"errorMessageColor"};
+      }
+      else 
+      {
+	 # Note
+         $c1 = $colors{"noteFileNameColor"};
+	 $c2 = $colors{"noteNumberColor"};
+	 $c4 = $colors{"noteMessageColor"};
       }
       print($c1, "$field1", color("reset"), ":");
       print($c2, "$field2", color("reset"), "$sep");
@@ -370,9 +391,9 @@ while(<GCCOUT>)
    elsif (m/^(.*?):(.+):$/) # filename:message:
    {
       # No line number, treat as an "introductory" line of text.
-      print($colors{"introColor"}, "$1", color("reset"), ":");
-      srcscan($2, $colors{"introColor"});
-      print($colors{"introColor"}, color("reset"), ":");
+      print($colors{"introFileNameColor"}, "$1", color("reset"), ":");
+      srcscan($2, $colors{"introMessageColor"});
+      print(color("reset"), ":");
       print("\n");
    }
    elsif (m/^(.*)$/) # Anything else.
