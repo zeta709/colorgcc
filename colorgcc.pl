@@ -316,7 +316,7 @@ while(<GCCOUT>)
 	 $c3 = $colors{"warningColumnNumberColor"};
 	 $c4 = $colors{"warningMessageColor"};
       }
-      elsif ($field4 = ~m/error:.*/)
+      elsif ($field4 =~ m/error:.*/)
       {
 	 # Error
          $c1 = $colors{"errorFileNameColor"};
@@ -362,7 +362,7 @@ while(<GCCOUT>)
 	 $c2 = $colors{"warningNumberColor"};
 	 $c4 = $colors{"warningMessageColor"};
       }
-      elsif ($field4 = ~m/error:.*/)
+      elsif ($field4 =~ m/error:.*/)
       {
 	 # Error
          $c1 = $colors{"errorFileNameColor"};
