@@ -106,10 +106,12 @@ sub initDefaults
 
    $colors{"warningFileNameColor"} = color("yellow");
    $colors{"warningNumberColor"}   = color("yellow");
+   $colors{"warningColumnNumberColor"}   = color("yellow");
    $colors{"warningMessageColor"}  = color("yellow");
 
    $colors{"errorFileNameColor"} = color("bold red");
    $colors{"errorNumberColor"}   = color("bold red");
+   $colors{"errorColumnNumberColor"}   = color("bold red");
    $colors{"errorMessageColor"}  = color("bold red");
 }
 
@@ -178,20 +180,26 @@ sub srcscan
    # sequence that turns on the the desired source color, and B is the
    # escape sequence that returns to $normalColor.
 
+   my($lquote) = "\`|‘";
+   my($lquotes) = "\`‘";
+   my($rquote) = "\'|’";
+   my($rquotes) = "\'’";
+
    # Handle multi-line quotes.
    if ($unfinishedQuote) {
-      if ($line =~ s/^([^\`]*?)\'/$1$srcoff\'/)
+      if ($line =~ s/^([^$rquotes]*?)($rquote)/$1$srcoff\'/)
       {
 	 $unfinishedQuote = 0;
       }
    }
-   if ($line =~ s/\`([^\']*?)$/\`$srcon$1/)
+   if ($line =~ s/($lquote)([^$rquotes]*?)$/\`$srcon$2/)
    {
       $unfinishedQuote = 1;
    }
 
    # Single line quoting.
-   $line =~ s/\`(.*?)\'/\`$srcon$1$srcoff\'/g;
+   #$line =~ s/\`(.*?)\'/\`$srcon$1$srcoff\'/g;
+   $line =~ s/($lquote)(.*?)($rquote)/\`$srcon$2$srcoff\'/g;
 
    print($line, color("reset"));
 }
@@ -263,7 +271,8 @@ else
 
    # If it's in the list of terminal types not to color, or if
    # we're writing to something that's not a tty, don't do color.
-   if (! -t STDOUT || $nocolor{$terminal})
+   #if (! -t STDOUT || $nocolor{$terminal})
+   if ($nocolor{$terminal})
    {
       exec $compiler, @ARGV
 	 or die("Couldn't exec");
@@ -277,40 +286,99 @@ else
 # Colorize the output from the compiler.
 while(<GCCOUT>)
 {
-   if (m#^(.+?\.[^:/ ]+):([0-9]+):(.*)$#) # filename:lineno:message
+   if (m#^(.+?\.[^:/ ]+):([0-9]+):([0-9]+)([:,] *)(.*)$#) # filename:lineno:colno:message
    {
-      my $field1 = $1 || "";
-      my $field2 = $2 || "";
-      my $field3 = $3 || "";
+      my $field1 = $1; # || "";
+      my $field2 = $2; # || "";
+      my $field3 = $3; # || "";
+      my $sep = $4; # || "";
+      my $field4 = $5; # || "";
 
-      if ($field3 =~ m/\s+warning:.*/)
+      my ($c1, $c2, $c3, $c4);
+
+      if (!$field4) {
+         $c1 = $colors{"introColor"};
+	 $c2 = $colors{"warningNumberColor"};
+	 $c3 = $colors{"warningColumnNumberColor"};
+	 $c4 = color("reset");
+      }
+      elsif ($field4 =~ m/warning:.*/)
       {
 	 # Warning
-	 print($colors{"warningFileNameColor"}, "$field1:", color("reset"));
-	 print($colors{"warningNumberColor"}, "$field2:", color("reset"));
-	 srcscan($field3, $colors{"warningMessageColor"});
+         $c1 = $colors{"warningFileNameColor"};
+	 $c2 = $colors{"warningNumberColor"};
+	 $c3 = $colors{"warningColumnNumberColor"};
+	 $c4 = $colors{"warningMessageColor"};
       }
       else 
       {
 	 # Error
-	 print($colors{"errorFileNameColor"}, "$field1:", color("reset"));
-	 print($colors{"errorNumberColor"}, "$field2:", color("reset"));
-	 srcscan($field3, $colors{"errorMessageColor"});
+         $c1 = $colors{"errorFileNameColor"};
+	 $c2 = $colors{"errorNumberColor"};
+	 $c3 = $colors{"errorColumnNumberColor"};
+	 $c4 = $colors{"errorMessageColor"};
+      }
+      print($c1, "$field1", color("reset"), ":");
+      print($c2, "$field2", color("reset"), ":");
+      print($c3, "$field3", color("reset"), "$sep");
+      if ($field4) {
+	 srcscan($field4, $c4);
       }
       print("\n");
    }
-   elsif (m/^:.+`.*'$/) # filename:message:
+   elsif (m#^(.+?\.[^:/ ]+):([0-9]+)([:,] *)(.*)$#) # filename:lineno:message
    {
-      srcscan($_, $colors{"warningMessageColor"});
+      my $field1 = $1; # || "";
+      my $field2 = $2; # || "";
+      my $field3 = ""; # || "";
+      my $sep = $3; # || "";
+      my $field4 = $4; # || "";
+
+      my ($c1, $c2, $c3, $c4);
+
+      if (!$field4) {
+         $c1 = $colors{"introColor"};
+	 $c2 = $colors{"warningNumberColor"};
+	 $c4 = color("reset");
+      }
+      elsif ($field4 =~ m/warning:.*/)
+      {
+	 # Warning
+         $c1 = $colors{"warningFileNameColor"};
+	 $c2 = $colors{"warningNumberColor"};
+	 $c4 = $colors{"warningMessageColor"};
+      }
+      else 
+      {
+	 # Error
+         $c1 = $colors{"errorFileNameColor"};
+	 $c2 = $colors{"errorNumberColor"};
+	 $c4 = $colors{"errorMessageColor"};
+      }
+      print($c1, "$field1", color("reset"), ":");
+      print($c2, "$field2", color("reset"), "$sep");
+      if ($field4) {
+	 srcscan($field4, $c4);
+      }
+      print("\n");
+   }
+   elsif (m/^(:.+`.*')$/) # filename:message:
+   {
+      srcscan($1, $colors{"warningMessageColor"});
+      print("\n");
    }
    elsif (m/^(.*?):(.+):$/) # filename:message:
    {
       # No line number, treat as an "introductory" line of text.
-      srcscan($_, $colors{"introColor"});
+      print($colors{"introColor"}, "$1:", color("reset"));
+      srcscan($2, $colors{"introColor"});
+      print($colors{"introColor"}, ":", color("reset"));
+      print("\n");
    }
-   else # Anything else.
+   elsif (m/^(.*)$/) # Anything else.
    {
-      srcscan($_, undef);
+      srcscan($1, undef);
+      print("\n");
    }
 }
 
